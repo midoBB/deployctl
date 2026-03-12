@@ -1,0 +1,36 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Run tests
+        run: go test ./...
+
+      - name: Build binaries
+        run: |
+          LDFLAGS="-ldflags '-X main.version=${{ github.ref_name }}'"
+          GOOS=linux  GOARCH=amd64 go build $LDFLAGS -o deployctl-linux-amd64  .
+          GOOS=linux  GOARCH=arm64 go build $LDFLAGS -o deployctl-linux-arm64  .
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            deployctl-linux-amd64
+            deployctl-linux-arm64
+          generate_release_notes: true
